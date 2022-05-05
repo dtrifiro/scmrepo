@@ -663,6 +663,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         commit: bool = True,
         msg: Optional[str] = None,
         squash: bool = False,
+        ignore_merge_config: bool = False,
     ) -> Optional[str]:
         from pygit2 import (
             GIT_MERGE_ANALYSIS_FASTFORWARD,
@@ -700,9 +701,9 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 raise MergeConflictError("Merge contained conflicts")
 
             try:
-                if not (
-                    squash or ff_pref & GIT_MERGE_PREFERENCE_NO_FASTFORWARD
-                ):
+
+                no_ff = ff_pref & GIT_MERGE_PREFERENCE_NO_FASTFORWARD
+                if not (squash or (ignore_merge_config or no_ff)):
                     if analysis & GIT_MERGE_ANALYSIS_FASTFORWARD:
                         return self._merge_ff(rev, obj)
 
@@ -710,7 +711,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                         self.repo.set_head(obj.id)
                         return str(obj.id)
 
-                if ff_pref & GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY:
+                ff_only = ff_pref & GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY
+                if not ignore_merge_config and ff_only:
                     raise SCMError(f"Cannot fast-forward HEAD to '{rev}'")
 
                 if commit:
