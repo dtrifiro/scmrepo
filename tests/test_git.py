@@ -424,19 +424,10 @@ def test_fetch_refspecs(
 
 @pytest.mark.skip_git_backend("pygit2", "gitpython")
 @pytest.mark.parametrize("use_url", [True, False])
-@pytest.mark.parametrize(
-    "file_url_as_posix",
-    [
-        True,
-        pytest.param(
-            False,
-            marks=pytest.mark.xfail(
-                os.name == "nt",
-                reason="file:// urls are not supported by dulwich on windows",
-                raises=AssertionError,
-            ),
-        ),
-    ],
+@pytest.mark.xfail(
+    os.name == "nt",
+    reason="file:// urls are not supported by dulwich on windows",
+    raises=AssertionError,
 )
 def test_iter_remote_refs(
     tmp_dir: TmpDir,
@@ -445,12 +436,8 @@ def test_iter_remote_refs(
     remote_git_dir: TmpDir,
     tmp_dir_factory: TempDirFactory,
     use_url: bool,
-    file_url_as_posix: bool,
 ):
-    if file_url_as_posix:
-        url = f"file://{remote_git_dir.resolve().as_posix()}"
-    else:
-        url = f"file://{remote_git_dir.resolve()}"
+    url = f"file://{remote_git_dir.resolve().as_posix()}"
 
     scm.gitpython.repo.create_remote("origin", url)
     remote_scm = Git(remote_git_dir)
