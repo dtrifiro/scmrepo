@@ -313,7 +313,7 @@ def test_push_refspecs(
     scm: Git,
     git: Git,
     remote_git_dir: TmpDir,
-    use_url: str,
+    use_url: bool,
 ):
     from scmrepo.git.backend.dulwich import SyncStatus
 
@@ -949,14 +949,14 @@ async def test_git_ssh(
     assert (tmp_dir / "foo").read_text() == "foo"
 
 
-@pytest.mark.parametrize("scheme", ["", "file://"])
+@pytest.mark.parametrize("use_file_url", [False, True])
 @pytest.mark.parametrize("shallow_branch", [None, "master"])
 def test_clone(
     tmp_dir: TmpDir,
     scm: Git,
     git: Git,
     tmp_dir_factory: TempDirFactory,
-    scheme: str,
+    use_file_url: bool,
     shallow_branch: Optional[str],
 ):
     tmp_dir.gen("foo", "foo")
@@ -964,8 +964,16 @@ def test_clone(
     rev = scm.get_rev()
 
     target_dir = tmp_dir_factory.mktemp("git-clone")
+
+    if use_file_url:
+        path = f"file://{tmp_dir.as_posix()}"
+    else:
+        path = f"{tmp_dir}"
+
     git.clone(
-        f"{scheme}{tmp_dir}", str(target_dir), shallow_branch=shallow_branch
+        path,
+        str(target_dir),
+        shallow_branch=shallow_branch,
     )
     target = Git(str(target_dir))
     assert target.get_rev() == rev
