@@ -424,11 +424,6 @@ def test_fetch_refspecs(
 
 @pytest.mark.skip_git_backend("pygit2", "gitpython")
 @pytest.mark.parametrize("use_url", [True, False])
-@pytest.mark.xfail(
-    os.name == "nt",
-    reason="file:// urls are not supported by dulwich on windows",
-    raises=AssertionError,
-)
 def test_iter_remote_refs(
     tmp_dir: TmpDir,
     scm: Git,
