@@ -939,7 +939,7 @@ def test_fetch(
     assert target.get_ref("refs/remotes/origin/master") == rev
 
 
-@pytest.mark.skip_git_backend("pygit2", "gitpython")
+@pytest.mark.skip_git_backend("gitpython")
 @pytest.mark.parametrize("untracked_files", ["all", "no"])
 @pytest.mark.parametrize("ignored", [False, True])
 def test_status(
@@ -984,7 +984,7 @@ def test_status(
             os.path.join("untracked_dir", "subfolder", "subfile")
         )
 
-    git.add("foo")
+    scm.add("foo")
     staged, unstaged, untracked = git.status(ignored, untracked_files)
 
     assert staged["modify"] == ["foo"]
