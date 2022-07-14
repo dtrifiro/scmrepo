@@ -602,12 +602,65 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                     index.add(entry.path)
                 index.write()
 
-    def iter_remote_refs(self, url: str, base: Optional[str] = None, **kwargs):
-        raise NotImplementedError
-
     def status(
         self, ignored: bool = False, untracked_files: str = "all"
     ) -> Tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
+        if untracked_files == "normal":
+            raise NotImplementedError("untracked_files=normal")
+
+        from pygit2 import (
+            GIT_STATUS_CURRENT,
+            GIT_STATUS_IGNORED,
+            GIT_STATUS_INDEX_DELETED,
+            GIT_STATUS_INDEX_MODIFIED,
+            GIT_STATUS_INDEX_NEW,
+            GIT_STATUS_WT_DELETED,
+            GIT_STATUS_WT_MODIFIED,
+            GIT_STATUS_WT_NEW,
+            GIT_STATUS_WT_RENAMED,
+            GIT_STATUS_WT_TYPECHANGE,
+            GIT_STATUS_WT_UNREADABLE,
+        )
+
+        staged: Mapping[str, List[str]] = {
+            "add": [],
+            "delete": [],
+            "modify": [],
+        }
+        unstaged: List[str] = []
+        untracked: List[str] = []
+        for file, state in self.repo.status().items():
+            if state == GIT_STATUS_CURRENT:
+                continue
+            if state & GIT_STATUS_WT_NEW or (
+                ignored and state & GIT_STATUS_IGNORED
+            ):
+                if untracked_files == "all":
+                    untracked.append(file)
+                continue
+            if state & GIT_STATUS_WT_MODIFIED:
+                unstaged.append(file)
+            if (
+                state & GIT_STATUS_INDEX_MODIFIED
+                or state & GIT_STATUS_WT_DELETED
+                or state & GIT_STATUS_WT_RENAMED
+                or state & GIT_STATUS_WT_TYPECHANGE
+            ):
+                staged["modify"].append(file)
+            if state & GIT_STATUS_INDEX_DELETED:
+                staged["delete"].append(file)
+            if state & GIT_STATUS_INDEX_NEW:
+                staged["add"].append(file)
+            if state & GIT_STATUS_WT_UNREADABLE:
+                raise ValueError(f"{file} is unreadable")
+
+        return (
+            {status: paths for status, paths in staged.items() if paths},
+            unstaged,
+            untracked,
+        )
+
+    def iter_remote_refs(self, url: str, base: Optional[str] = None, **kwargs):
         raise NotImplementedError
 
     def merge(
