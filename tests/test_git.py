@@ -661,7 +661,7 @@ def test_add(tmp_dir: TmpDir, scm: Git, git: Git):
     tmp_dir.gen({"foo": "foo", "bar": "bar", "dir": {"baz": "baz"}})
     git.add(["foo", "dir"])
     staged, unstaged, untracked = scm.status()
-    assert set(staged["add"]) == {"foo", os.path.join("dir", "baz")}
+    assert set(staged["add"]) == {"foo", "dir/baz"}
     assert len(unstaged) == 0
     assert len(untracked) == 1
 
@@ -669,14 +669,14 @@ def test_add(tmp_dir: TmpDir, scm: Git, git: Git):
     tmp_dir.gen({"foo": "bar", "dir": {"baz": "bar"}})
     git.add([], update=True)
     staged, unstaged, _ = scm.status()
-    assert set(staged["modify"]) == {"foo", os.path.join("dir", "baz")}
+    assert set(staged["modify"]) == {"foo", "dir/baz"}
     assert len(unstaged) == 0
     assert len(untracked) == 1
 
     scm.reset()
     git.add(["dir"], update=True)
     staged, unstaged, _ = scm.status()
-    assert set(staged["modify"]) == {os.path.join("dir", "baz")}
+    assert set(staged["modify"]) == {"dir/baz"}
     assert len(unstaged) == 1
     assert len(untracked) == 1
 
