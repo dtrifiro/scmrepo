@@ -98,6 +98,7 @@ class Git(Base):
         first_ = first(self.backends.values())
         super().__init__(first_.root_dir)
         self._last_backend: Optional[str] = None
+        self._used_backends: Dict[str, str] = {}
 
     @property
     def dir(self):
@@ -271,22 +272,33 @@ class Git(Base):
     def no_commits(self):
         return not bool(self.get_ref("HEAD"))
 
-    # Prefer re-using the most recently used backend when possible. When
-    # changing backends (due to unimplemented calls), we close the previous
-    # backend to release any open git files/contexts that may cause conflicts
-    # with the new backend.
+    def close_last_used_backend(self):
+        if self._last_backend is not None:
+            self.backends[self._last_backend].close()
+            self._last_backend = None
+
+    # When changing backends (due to unimplemented calls), we close the
+    # previous backend to release any open git files/contexts that may
+    # cause conflicts with the new backend.
     #
     # See:
     # https://github.com/iterative/dvc/issues/5641
     # https://github.com/iterative/dvc/issues/7458
     def _backend_func(self, name, *args, **kwargs):
+        if name in self._used_backends:
+            if self._used_backends[name] != self._last_backend:
+                self.close_last_used_backend()
+            backend = self.backends[self._used_backends[name]]
+            func = getattr(backend, name)
+            return func(*args, **kwargs)
+
         for key, backend in self.backends.items():
-            if self._last_backend is not None and key != self._last_backend:
-                self.backends[self._last_backend].close()
-                self._last_backend = None
+            if key != self._last_backend:
+                self.close_last_used_backend()
             try:
                 func = getattr(backend, name)
                 result = func(*args, **kwargs)
+                self._used_backends[name] = key
                 self._last_backend = key
                 self.backends.move_to_end(key, last=False)
                 return result
