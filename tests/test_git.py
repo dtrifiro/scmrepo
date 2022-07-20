@@ -980,9 +980,7 @@ def test_status(
     if ignored and untracked_files != "no":
         expected_untracked.append("ignored")
     if untracked_files != "no":
-        expected_untracked.append(
-            os.path.join("untracked_dir", "subfolder", "subfile")
-        )
+        expected_untracked.append("untracked_dir/subfolder/subfile")
 
     scm.add("foo")
     staged, unstaged, untracked = git.status(ignored, untracked_files)
