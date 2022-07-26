@@ -653,6 +653,19 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
             warnings.warn("Unreadable files: {', '.join(unreadable)}")
 
+        if os.name == "nt":
+            # pygit2 always returns posix paths, convert them to nt paths
+
+            def posix_to_nt(path: str) -> str:
+                return path.replace("/", "\\")
+
+            staged = {
+                status: [posix_to_nt(path) for path in paths]
+                for status, paths in staged.items()
+            }
+            unstaged = [posix_to_nt(path) for path in unstaged]
+            untracked = [posix_to_nt(path) for path in untracked]
+
         return (
             {status: paths for status, paths in staged.items() if paths},
             unstaged,
